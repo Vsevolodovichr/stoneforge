@@ -58,7 +58,8 @@ tools/seo/.env
 tools/seo/output/*.json
 tools/seo/service-account.json
 
-# Local dependency and test artifacts
+# Local dependency, deployment, and test artifacts
 .pnpm-store/
 .test-history/
 .local-backup/
+.wrangler/
