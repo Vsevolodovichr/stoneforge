@@ -1,10 +1,8 @@
-import { createRouter, createRoute, createRootRoute, redirect } from '@tanstack/react-router';
+import { createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router';
 import { DashboardPage } from './routes/dashboard';
 
 const rootRoute = createRootRoute({
-  component: () => {
-    throw redirect({ to: '/dashboard' });
-  },
+  component: Outlet,
 });
 
 const indexRoute = createRoute({
