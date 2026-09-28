@@ -25,6 +25,7 @@ export interface ClientData {
   id: string;
   subscriptions: Set<SubscriptionChannel>;
   eventListener: EventListener;
+  projectId?: string;
 }
 
 /**
@@ -72,6 +73,7 @@ export function handleOpen(ws: ServerWebSocket<ClientData>): void {
     id: clientId,
     subscriptions,
     eventListener,
+    projectId: undefined, // Will be set via 'project' message
   };
 
   // Register listener with broadcaster
@@ -106,6 +108,25 @@ export function handleMessage(ws: ServerWebSocket<ClientData>, data: string | Bu
     case 'ping':
       sendToClient(ws, { type: 'pong' });
       break;
+
+    case 'project': {
+      // Set the client's project context
+      if (parsed.projectId && typeof parsed.projectId === 'string') {
+        ws.data.projectId = parsed.projectId;
+        sendToClient(ws, {
+          type: 'project',
+          projectId: parsed.projectId,
+        });
+        console.log(`[ws] Client ${ws.data.id} set project: ${parsed.projectId}`);
+      } else {
+        sendToClient(ws, {
+          type: 'error',
+          code: 'INVALID_PROJECT',
+          message: 'projectId is required',
+        });
+      }
+      break;
+    }
 
     case 'subscribe': {
       for (const channel of parsed.channels) {

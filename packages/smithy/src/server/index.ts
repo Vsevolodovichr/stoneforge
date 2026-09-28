@@ -13,6 +13,7 @@ import type { AgentEntity } from '../api/orchestrator-api.js';
 import { createLogger, getLogLevel } from '../utils/logger.js';
 import { CORS_ORIGINS as DEFAULT_CORS_ORIGINS, PORT as DEFAULT_PORT, HOST as DEFAULT_HOST, PROJECT_ROOT as DEFAULT_PROJECT_ROOT, DB_PATH as DEFAULT_DB_PATH } from './config.js';
 import { initializeServices, type Services } from './services.js';
+export { type Services } from './services.js';
 import {
   createHealthRoutes,
   createTaskRoutes,
@@ -36,6 +37,7 @@ import {
   createApprovalRoutes,
   markDaemonAsServerManaged,
 } from './routes/index.js';
+import { createProjectRoutes } from '@stoneforge/smithy/routes';
 // Shared collaborate routes
 import {
   createElementsRoutes,
@@ -159,6 +161,7 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   app.route('/', createDiagnosticsRoutes(services));
   app.route('/', createExternalSyncRoutes(services));
   app.route('/', createApprovalRoutes(services));
+  app.route('/', createProjectRoutes(services));
 
   app.route('/', createElementsRoutes(collaborateServices));
   app.route('/', createEntityRoutes(collaborateServices));

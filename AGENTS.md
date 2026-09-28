@@ -28,6 +28,10 @@ Context and instructions for AI coding agents working on the Stoneforge reposito
 | Configure identity | `packages/quarry/src/systems/identity.ts` | `sf show el-2jw5` |
 | Understand event sourcing | `packages/core/src/types/event.ts` | `sf show el-58k3` |
 | Configure the system | `packages/quarry/src/config/` | `sf show el-z1sj` |
+| Manage projects | `packages/quarry/src/services/project-registry.ts` | `sf show el-7k2m` |
+| Project API routes | `packages/quarry/src/server/project-routes.ts` | `sf show el-8n3p` |
+| Auth middleware | `packages/quarry/src/auth/index.ts` | `sf show el-9q4r` |
+| Rate limiting | `packages/quarry/src/auth/rate-limit.ts` | `sf show el-0r5s` |
 
 ### Frontend Tasks
 

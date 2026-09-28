@@ -170,6 +170,47 @@ export interface AgentsConfig {
 }
 
 /**
+ * Control Center configuration settings
+ */
+export interface ControlCenterConfig {
+  /** Root directory for control center data (default: ~/.stoneforge/control-center or .stoneforge/control-center) */
+  rootPath?: string;
+  /** Port for the control center server (default: 3456) */
+  port: number;
+  /** Host for the control center server (default: 'localhost') */
+  host: string;
+  /** Enable remote access (bind to 0.0.0.0) */
+  remoteAccess: boolean;
+  /** CORS allowed origins */
+  corsOrigins: string[];
+  /** Authentication settings */
+  auth: {
+    /** Enable authentication */
+    enabled: boolean;
+    /** Auth token (required if enabled) */
+    token?: string;
+  };
+  /** TLS/SSL settings */
+  tls: {
+    /** Enable TLS */
+    enabled: boolean;
+    /** Path to certificate file */
+    certPath?: string;
+    /** Path to private key file */
+    keyPath?: string;
+  };
+  /** Rate limiting settings */
+  rateLimit: {
+    /** Enable rate limiting */
+    enabled: boolean;
+    /** Max requests per window */
+    maxRequests: number;
+    /** Window in milliseconds */
+    windowMs: number;
+  };
+}
+
+/**
  * Valid conflict strategy values
  */
 export const VALID_CONFLICT_STRATEGIES: readonly ExternalSyncConflictStrategy[] = [
@@ -230,6 +271,8 @@ export interface Configuration {
   workflow: WorkflowConfig;
   /** Agents settings */
   agents: AgentsConfig;
+  /** Control Center settings */
+  controlCenter: ControlCenterConfig;
 }
 
 /**
@@ -250,6 +293,7 @@ export type PartialConfiguration = {
   merge?: Partial<MergeConfig>;
   workflow?: Partial<WorkflowConfig>;
   agents?: Partial<AgentsConfig>;
+  controlCenter?: Partial<ControlCenterConfig>;
 };
 
 // ============================================================================
@@ -332,6 +376,27 @@ export interface TrackedConfiguration {
     permissionModel: TrackedValue<AgentPermissionModel>;
     allowedBashCommands: TrackedValue<string[]>;
   };
+  controlCenter: {
+    rootPath: TrackedValue<string | undefined>;
+    port: TrackedValue<number>;
+    host: TrackedValue<string>;
+    remoteAccess: TrackedValue<boolean>;
+    corsOrigins: TrackedValue<string[]>;
+    auth: {
+      enabled: TrackedValue<boolean>;
+      token: TrackedValue<string | undefined>;
+    };
+    tls: {
+      enabled: TrackedValue<boolean>;
+      certPath: TrackedValue<string | undefined>;
+      keyPath: TrackedValue<string | undefined>;
+    };
+    rateLimit: {
+      enabled: TrackedValue<boolean>;
+      maxRequests: TrackedValue<number>;
+      windowMs: TrackedValue<Duration>;
+    };
+  };
 }
 
 // ============================================================================
@@ -388,6 +453,27 @@ export interface YamlConfigFile {
   agents?: {
     permission_model?: string;
     allowed_bash_commands?: string[];
+  };
+  control_center?: {
+    root_path?: string;
+    port?: number;
+    host?: string;
+    remote_access?: boolean;
+    cors_origins?: string[];
+    auth?: {
+      enabled?: boolean;
+      token?: string;
+    };
+    tls?: {
+      enabled?: boolean;
+      cert_path?: string;
+      key_path?: string;
+    };
+    rate_limit?: {
+      enabled?: boolean;
+      max_requests?: number;
+      window_ms?: string | number;
+    };
   };
 }
 
@@ -499,6 +585,19 @@ export const VALID_CONFIG_PATHS = [
   'workflow.preset',
   'agents.permissionModel',
   'agents.allowedBashCommands',
+  'controlCenter.rootPath',
+  'controlCenter.port',
+  'controlCenter.host',
+  'controlCenter.remoteAccess',
+  'controlCenter.corsOrigins',
+  'controlCenter.auth.enabled',
+  'controlCenter.auth.token',
+  'controlCenter.tls.enabled',
+  'controlCenter.tls.certPath',
+  'controlCenter.tls.keyPath',
+  'controlCenter.rateLimit.enabled',
+  'controlCenter.rateLimit.maxRequests',
+  'controlCenter.rateLimit.windowMs',
 ] as const;
 
 /**
@@ -545,4 +644,17 @@ export interface ConfigPathTypes {
   'workflow.preset': WorkflowPreset | null;
   'agents.permissionModel': AgentPermissionModel;
   'agents.allowedBashCommands': string[];
+  'controlCenter.rootPath': string | undefined;
+  'controlCenter.port': number;
+  'controlCenter.host': string;
+  'controlCenter.remoteAccess': boolean;
+  'controlCenter.corsOrigins': string[];
+  'controlCenter.auth.enabled': boolean;
+  'controlCenter.auth.token': string | undefined;
+  'controlCenter.tls.enabled': boolean;
+  'controlCenter.tls.certPath': string | undefined;
+  'controlCenter.tls.keyPath': string | undefined;
+  'controlCenter.rateLimit.enabled': boolean;
+  'controlCenter.rateLimit.maxRequests': number;
+  'controlCenter.rateLimit.windowMs': Duration;
 }

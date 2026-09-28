@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { Toaster } from 'sonner';
 import { router } from './router';
-import { TooltipProvider } from '@stoneforge/ui';
+import { TooltipProvider, ProjectProvider } from '@stoneforge/ui';
 import { DataPreloader } from './components/shared';
 import { CurrentUserProvider } from './contexts';
 import { getToastPosition, getToastDuration } from './routes/settings';
@@ -94,14 +94,16 @@ function DynamicToaster() {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <CurrentUserProvider>
-        <TooltipProvider>
-          <DataPreloader>
-            <RouterProvider router={router} />
-            <DynamicToaster />
-          </DataPreloader>
-        </TooltipProvider>
-      </CurrentUserProvider>
+      <ProjectProvider>
+        <CurrentUserProvider>
+          <TooltipProvider>
+            <DataPreloader>
+              <RouterProvider router={router} />
+              <DynamicToaster />
+            </DataPreloader>
+          </TooltipProvider>
+        </CurrentUserProvider>
+      </ProjectProvider>
     </QueryClientProvider>
   </StrictMode>
 );

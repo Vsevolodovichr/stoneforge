@@ -26,7 +26,7 @@ export type SubscriptionChannel =
 /**
  * Client -> Server message types
  */
-export type ClientMessageType = 'subscribe' | 'unsubscribe' | 'ping';
+export type ClientMessageType = 'subscribe' | 'unsubscribe' | 'ping' | 'project';
 
 /**
  * Client -> Server messages
@@ -45,12 +45,17 @@ export interface PingMessage {
   type: 'ping';
 }
 
-export type ClientMessage = SubscribeMessage | UnsubscribeMessage | PingMessage;
+export interface ProjectMessage {
+  type: 'project';
+  projectId: string;
+}
+
+export type ClientMessage = SubscribeMessage | UnsubscribeMessage | PingMessage | ProjectMessage;
 
 /**
  * Server -> Client message types
  */
-export type ServerMessageType = 'event' | 'pong' | 'error' | 'subscribed' | 'unsubscribed';
+export type ServerMessageType = 'event' | 'pong' | 'error' | 'subscribed' | 'unsubscribed' | 'project';
 
 /**
  * Extended event with element type information
@@ -100,12 +105,23 @@ export interface UnsubscribedMessage {
   channels: SubscriptionChannel[];
 }
 
+/**
+ * Project switch message (server -> client)
+ */
+export interface ServerProjectMessage {
+  type: 'project';
+  projectId: string | null;
+  projectName?: string;
+  projectPath?: string;
+}
+
 export type ServerMessage =
   | EventMessage
   | PongMessage
   | ErrorMessage
   | SubscribedMessage
-  | UnsubscribedMessage;
+  | UnsubscribedMessage
+  | ServerProjectMessage;
 
 /**
  * Map element types to subscription channels
@@ -160,6 +176,13 @@ export function parseClientMessage(data: string): ClientMessage | null {
       return {
         type: 'unsubscribe',
         channels: parsed.channels.filter((c: unknown) => typeof c === 'string'),
+      };
+    }
+
+    if (parsed.type === 'project' && typeof parsed.projectId === 'string') {
+      return {
+        type: 'project',
+        projectId: parsed.projectId,
       };
     }
 

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { Toaster } from 'sonner';
 import { router } from './router';
-import { TooltipProvider } from '@stoneforge/ui';
+import { TooltipProvider, ProjectProvider } from '@stoneforge/ui';
 import { DataPreloader } from './components/shared/DataPreloader';
 import { CurrentUserProvider, WorkspaceProvider } from './contexts';
 import './index.css';
@@ -43,21 +43,23 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <CurrentUserProvider>
-        <WorkspaceProvider>
-          <TooltipProvider>
-            <DataPreloader>
-              <RouterProvider router={router} />
-            </DataPreloader>
-            <Toaster
-              position="bottom-right"
-              duration={5000}
-              richColors
-              closeButton
-            />
-          </TooltipProvider>
-        </WorkspaceProvider>
-      </CurrentUserProvider>
+      <ProjectProvider>
+        <CurrentUserProvider>
+          <WorkspaceProvider>
+            <TooltipProvider>
+              <DataPreloader>
+                <RouterProvider router={router} />
+              </DataPreloader>
+              <Toaster
+                position="bottom-right"
+                duration={5000}
+                richColors
+                closeButton
+              />
+            </TooltipProvider>
+          </WorkspaceProvider>
+        </CurrentUserProvider>
+      </ProjectProvider>
     </QueryClientProvider>
   </StrictMode>
 );

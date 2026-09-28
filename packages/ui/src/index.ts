@@ -48,6 +48,9 @@ export * from './message';
 // Workflows Module (also available via '@stoneforge/ui/workflows')
 export * from './workflows';
 
+// Utils
+export * from './utils/projectValidation';
+
 // Resolve export name conflicts introduced by workflows re-export:
 // Domain types take precedence for TaskStatus, Workflow, WorkflowStatus (different definitions)
 export type { TaskStatus, Workflow, WorkflowStatus } from './domain';

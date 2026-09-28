@@ -11,3 +11,10 @@ export {
   type CurrentUserProviderProps,
   type UserEntity,
 } from './CurrentUserContext';
+
+export {
+  ProjectProvider,
+  useProject,
+  type ProjectContextValue,
+  type ProjectProviderProps,
+} from './ProjectContext';

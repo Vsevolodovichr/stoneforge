@@ -6,7 +6,7 @@
  */
 
 import { IdentityMode } from '../systems/identity.js';
-import type { Configuration, SyncConfig, PlaybookConfig, TombstoneConfig, IdentityConfigSection, PluginsConfig, ExternalSyncConfig, MergeConfig, WorkflowConfig, AgentsConfig } from './types.js';
+import type { Configuration, SyncConfig, PlaybookConfig, TombstoneConfig, IdentityConfigSection, PluginsConfig, ExternalSyncConfig, MergeConfig, WorkflowConfig, AgentsConfig, ControlCenterConfig } from './types.js';
 
 // ============================================================================
 // Time Constants (in milliseconds)
@@ -133,6 +133,38 @@ export const DEFAULT_AGENTS_CONFIG: AgentsConfig = {
 };
 
 /**
+ * Default control center configuration
+ */
+export const DEFAULT_CONTROL_CENTER_CONFIG: ControlCenterConfig = {
+  rootPath: undefined,
+  port: 3456,
+  host: 'localhost',
+  remoteAccess: false,
+  corsOrigins: [
+    'http://localhost:3456',
+    'http://127.0.0.1:3456',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
+  ],
+  auth: {
+    enabled: false,
+    token: undefined,
+  },
+  tls: {
+    enabled: false,
+    certPath: undefined,
+    keyPath: undefined,
+  },
+  rateLimit: {
+    enabled: true,
+    maxRequests: 100,
+    windowMs: 60 * ONE_SECOND, // 1 minute
+  },
+};
+
+/**
  * Complete default configuration
  */
 export const DEFAULT_CONFIG: Configuration = {
@@ -150,6 +182,7 @@ export const DEFAULT_CONFIG: Configuration = {
   merge: DEFAULT_MERGE_CONFIG,
   workflow: DEFAULT_WORKFLOW_CONFIG,
   agents: DEFAULT_AGENTS_CONFIG,
+  controlCenter: DEFAULT_CONTROL_CENTER_CONFIG,
 };
 
 // ============================================================================
@@ -216,5 +249,12 @@ export function getDefaultConfig(): Configuration {
     merge: { ...DEFAULT_MERGE_CONFIG },
     workflow: { ...DEFAULT_WORKFLOW_CONFIG },
     agents: { ...DEFAULT_AGENTS_CONFIG, allowedBashCommands: [...DEFAULT_AGENTS_CONFIG.allowedBashCommands] },
+    controlCenter: { 
+      ...DEFAULT_CONTROL_CENTER_CONFIG, 
+      corsOrigins: [...DEFAULT_CONTROL_CENTER_CONFIG.corsOrigins],
+      auth: { ...DEFAULT_CONTROL_CENTER_CONFIG.auth },
+      tls: { ...DEFAULT_CONTROL_CENTER_CONFIG.tls },
+      rateLimit: { ...DEFAULT_CONTROL_CENTER_CONFIG.rateLimit },
+    },
   };
 }

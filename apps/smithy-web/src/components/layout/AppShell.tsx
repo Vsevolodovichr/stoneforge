@@ -6,7 +6,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Outlet, useRouterState, Link, useRouter } from '@tanstack/react-router';
 import { Sidebar } from './Sidebar';
-import { MobileDrawer, UserSelector } from '@stoneforge/ui';
+import { MobileDrawer, UserSelector, ProjectSelector } from '@stoneforge/ui';
 import { DirectorPanel } from './DirectorPanel';
 import { DaemonToggle } from './DaemonToggle';
 import { RateLimitBanner } from './RateLimitBanner';
@@ -1335,6 +1335,8 @@ export function AppShell() {
                   </kbd>
                 </button>
               )}
+              {/* Project selector for switching between projects */}
+              {!isMobile && <ProjectSelector compact />}
               {/* User selector for switching human entities */}
               {!isMobile && <UserSelector />}
               {/* Daemon toggle for dispatch daemon control */}

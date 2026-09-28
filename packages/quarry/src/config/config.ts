@@ -357,6 +357,35 @@ function createTrackedDefaults(): TrackedConfiguration {
       permissionModel: { value: DEFAULT_CONFIG.agents.permissionModel, source: ConfigSourceEnum.DEFAULT },
       allowedBashCommands: { value: DEFAULT_CONFIG.agents.allowedBashCommands, source: ConfigSourceEnum.DEFAULT },
     },
+    controlCenter: {
+      rootPath: DEFAULT_CONFIG.controlCenter.rootPath !== undefined
+        ? { value: DEFAULT_CONFIG.controlCenter.rootPath, source: ConfigSourceEnum.DEFAULT }
+        : { value: undefined, source: ConfigSourceEnum.DEFAULT },
+      port: { value: DEFAULT_CONFIG.controlCenter.port, source: ConfigSourceEnum.DEFAULT },
+      host: { value: DEFAULT_CONFIG.controlCenter.host, source: ConfigSourceEnum.DEFAULT },
+      remoteAccess: { value: DEFAULT_CONFIG.controlCenter.remoteAccess, source: ConfigSourceEnum.DEFAULT },
+      corsOrigins: { value: [...DEFAULT_CONFIG.controlCenter.corsOrigins], source: ConfigSourceEnum.DEFAULT },
+      auth: {
+        enabled: { value: DEFAULT_CONFIG.controlCenter.auth.enabled, source: ConfigSourceEnum.DEFAULT },
+        token: DEFAULT_CONFIG.controlCenter.auth.token !== undefined
+          ? { value: DEFAULT_CONFIG.controlCenter.auth.token, source: ConfigSourceEnum.DEFAULT }
+          : { value: undefined, source: ConfigSourceEnum.DEFAULT },
+      },
+      tls: {
+        enabled: { value: DEFAULT_CONFIG.controlCenter.tls.enabled, source: ConfigSourceEnum.DEFAULT },
+        certPath: DEFAULT_CONFIG.controlCenter.tls.certPath !== undefined
+          ? { value: DEFAULT_CONFIG.controlCenter.tls.certPath, source: ConfigSourceEnum.DEFAULT }
+          : { value: undefined, source: ConfigSourceEnum.DEFAULT },
+        keyPath: DEFAULT_CONFIG.controlCenter.tls.keyPath !== undefined
+          ? { value: DEFAULT_CONFIG.controlCenter.tls.keyPath, source: ConfigSourceEnum.DEFAULT }
+          : { value: undefined, source: ConfigSourceEnum.DEFAULT },
+      },
+      rateLimit: {
+        enabled: { value: DEFAULT_CONFIG.controlCenter.rateLimit.enabled, source: ConfigSourceEnum.DEFAULT },
+        maxRequests: { value: DEFAULT_CONFIG.controlCenter.rateLimit.maxRequests, source: ConfigSourceEnum.DEFAULT },
+        windowMs: { value: DEFAULT_CONFIG.controlCenter.rateLimit.windowMs, source: ConfigSourceEnum.DEFAULT },
+      },
+    },
   };
 }
 
@@ -453,6 +482,69 @@ function mergeTrackedConfig(
   }
   if (partial.agents?.allowedBashCommands !== undefined) {
     result.agents = { ...result.agents, allowedBashCommands: { value: partial.agents.allowedBashCommands, source } };
+  }
+  if (partial.controlCenter?.rootPath !== undefined) {
+    result.controlCenter = { ...result.controlCenter, rootPath: { value: partial.controlCenter.rootPath, source } };
+  }
+  if (partial.controlCenter?.port !== undefined) {
+    result.controlCenter = { ...result.controlCenter, port: { value: partial.controlCenter.port, source } };
+  }
+  if (partial.controlCenter?.host !== undefined) {
+    result.controlCenter = { ...result.controlCenter, host: { value: partial.controlCenter.host, source } };
+  }
+  if (partial.controlCenter?.remoteAccess !== undefined) {
+    result.controlCenter = { ...result.controlCenter, remoteAccess: { value: partial.controlCenter.remoteAccess, source } };
+  }
+  if (partial.controlCenter?.corsOrigins !== undefined) {
+    result.controlCenter = { ...result.controlCenter, corsOrigins: { value: partial.controlCenter.corsOrigins, source } };
+  }
+  if (partial.controlCenter?.auth?.enabled !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      auth: { ...result.controlCenter.auth, enabled: { value: partial.controlCenter.auth.enabled, source } } 
+    };
+  }
+  if (partial.controlCenter?.auth?.token !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      auth: { ...result.controlCenter.auth, token: { value: partial.controlCenter.auth.token, source } } 
+    };
+  }
+  if (partial.controlCenter?.tls?.enabled !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      tls: { ...result.controlCenter.tls, enabled: { value: partial.controlCenter.tls.enabled, source } } 
+    };
+  }
+  if (partial.controlCenter?.tls?.certPath !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      tls: { ...result.controlCenter.tls, certPath: { value: partial.controlCenter.tls.certPath, source } } 
+    };
+  }
+  if (partial.controlCenter?.tls?.keyPath !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      tls: { ...result.controlCenter.tls, keyPath: { value: partial.controlCenter.tls.keyPath, source } } 
+    };
+  }
+  if (partial.controlCenter?.rateLimit?.enabled !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      rateLimit: { ...result.controlCenter.rateLimit, enabled: { value: partial.controlCenter.rateLimit.enabled, source } } 
+    };
+  }
+  if (partial.controlCenter?.rateLimit?.maxRequests !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      rateLimit: { ...result.controlCenter.rateLimit, maxRequests: { value: partial.controlCenter.rateLimit.maxRequests, source } } 
+    };
+  }
+  if (partial.controlCenter?.rateLimit?.windowMs !== undefined) {
+    result.controlCenter = { 
+      ...result.controlCenter, 
+      rateLimit: { ...result.controlCenter.rateLimit, windowMs: { value: partial.controlCenter.rateLimit.windowMs, source } } 
+    };
   }
 
   return result;

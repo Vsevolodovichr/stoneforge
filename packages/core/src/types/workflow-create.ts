@@ -36,7 +36,6 @@ import {
   resolveVariables,
   filterStepsByConditions,
   substituteVariables,
-  isTaskStep,
   isFunctionStep,
 } from './playbook.js';
 import type { IdGeneratorConfig } from '../id/generator.js';

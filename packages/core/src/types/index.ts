@@ -438,6 +438,9 @@ export {
 // External Sync exports
 export * from './external-sync.js';
 
+// Project exports
+export * from './project.js';
+
 // Inbox exports
 export {
   // Types and interfaces

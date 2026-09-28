@@ -12,3 +12,4 @@ export { DefaultsSection } from './DefaultsSection';
 export { NotificationsSection } from './NotificationsSection';
 export { SyncSection } from './SyncSection';
 export { DemoModeSection } from './DemoModeSection';
+export { ProjectsSection } from './ProjectsSection';

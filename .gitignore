@@ -57,3 +57,8 @@ OPENCODE_CONFIG_CONTENT
 tools/seo/.env
 tools/seo/output/*.json
 tools/seo/service-account.json
+
+# Local dependency and test artifacts
+.pnpm-store/
+.test-history/
+.local-backup/

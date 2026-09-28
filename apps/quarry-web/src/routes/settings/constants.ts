@@ -2,7 +2,7 @@
  * Constants for the Settings page
  */
 
-import { Palette, Keyboard, Settings2, Bell, RefreshCw, FlaskConical } from 'lucide-react';
+import { Palette, Keyboard, Settings2, Bell, RefreshCw, FlaskConical, FolderOpen } from 'lucide-react';
 import type { SectionNavItem, DefaultsSettings, NotificationsSettings, SyncSettings } from './types';
 
 export const SETTINGS_SECTIONS: SectionNavItem[] = [
@@ -12,6 +12,7 @@ export const SETTINGS_SECTIONS: SectionNavItem[] = [
   { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Notification preferences', implemented: true },
   { id: 'sync', label: 'Sync', icon: RefreshCw, description: 'Sync configuration', implemented: true },
   { id: 'demo', label: 'Demo Mode', icon: FlaskConical, description: 'Demo mode configuration', implemented: true },
+  { id: 'projects', label: 'Projects', icon: FolderOpen, description: 'Manage projects', implemented: true },
 ];
 
 // Storage keys

@@ -372,6 +372,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<neve
   // Serve command
   registerCommand(serveCommand);
 
+  // Project command
+  const { projectCommand } = await import('./commands/project.js');
+  registerCommand(projectCommand);
+
   // Command aliases
   registerAlias('add', 'create');    // User-friendly alias
   registerAlias('new', 'create');    // User-friendly alias

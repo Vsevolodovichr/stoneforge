@@ -83,3 +83,11 @@ export {
   SkeletonDocumentCard,
   SkeletonEntityCard,
 } from './Skeleton';
+
+// ProjectSelector
+export { ProjectSelector } from './ProjectSelector';
+export type { ProjectSelectorProps } from './ProjectSelector';
+
+// ProjectAddModal
+export { ProjectAddModal } from './ProjectAddModal';
+export type { ProjectAddModalProps } from './ProjectAddModal';

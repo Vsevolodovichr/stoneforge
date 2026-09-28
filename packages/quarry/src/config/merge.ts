@@ -120,6 +120,27 @@ export function mergeConfiguration(
       permissionModel: partial.agents?.permissionModel !== undefined ? partial.agents.permissionModel : base.agents.permissionModel,
       allowedBashCommands: partial.agents?.allowedBashCommands !== undefined ? partial.agents.allowedBashCommands : base.agents.allowedBashCommands,
     },
+    controlCenter: {
+      rootPath: partial.controlCenter?.rootPath !== undefined ? partial.controlCenter.rootPath : base.controlCenter.rootPath,
+      port: partial.controlCenter?.port !== undefined ? partial.controlCenter.port : base.controlCenter.port,
+      host: partial.controlCenter?.host !== undefined ? partial.controlCenter.host : base.controlCenter.host,
+      remoteAccess: partial.controlCenter?.remoteAccess !== undefined ? partial.controlCenter.remoteAccess : base.controlCenter.remoteAccess,
+      corsOrigins: partial.controlCenter?.corsOrigins !== undefined ? partial.controlCenter.corsOrigins : [...(base.controlCenter?.corsOrigins ?? [])],
+      auth: {
+        enabled: partial.controlCenter?.auth?.enabled !== undefined ? partial.controlCenter.auth.enabled : base.controlCenter.auth.enabled,
+        token: partial.controlCenter?.auth?.token !== undefined ? partial.controlCenter.auth.token : base.controlCenter.auth.token,
+      },
+      tls: {
+        enabled: partial.controlCenter?.tls?.enabled !== undefined ? partial.controlCenter.tls.enabled : base.controlCenter.tls.enabled,
+        certPath: partial.controlCenter?.tls?.certPath !== undefined ? partial.controlCenter.tls.certPath : base.controlCenter.tls.certPath,
+        keyPath: partial.controlCenter?.tls?.keyPath !== undefined ? partial.controlCenter.tls.keyPath : base.controlCenter.tls.keyPath,
+      },
+      rateLimit: {
+        enabled: partial.controlCenter?.rateLimit?.enabled !== undefined ? partial.controlCenter.rateLimit.enabled : base.controlCenter.rateLimit.enabled,
+        maxRequests: partial.controlCenter?.rateLimit?.maxRequests !== undefined ? partial.controlCenter.rateLimit.maxRequests : base.controlCenter.rateLimit.maxRequests,
+        windowMs: partial.controlCenter?.rateLimit?.windowMs !== undefined ? partial.controlCenter.rateLimit.windowMs : base.controlCenter.rateLimit.windowMs,
+      },
+    },
   };
   return result;
 }
@@ -211,6 +232,27 @@ export function cloneConfiguration(config: Configuration): Configuration {
     agents: {
       permissionModel: config.agents.permissionModel,
       allowedBashCommands: config.agents.allowedBashCommands,
+    },
+    controlCenter: {
+      rootPath: config.controlCenter.rootPath,
+      port: config.controlCenter.port,
+      host: config.controlCenter.host,
+      remoteAccess: config.controlCenter.remoteAccess,
+      corsOrigins: [...config.controlCenter.corsOrigins],
+      auth: {
+        enabled: config.controlCenter.auth.enabled,
+        token: config.controlCenter.auth.token,
+      },
+      tls: {
+        enabled: config.controlCenter.tls.enabled,
+        certPath: config.controlCenter.tls.certPath,
+        keyPath: config.controlCenter.tls.keyPath,
+      },
+      rateLimit: {
+        enabled: config.controlCenter.rateLimit.enabled,
+        maxRequests: config.controlCenter.rateLimit.maxRequests,
+        windowMs: config.controlCenter.rateLimit.windowMs,
+      },
     },
   };
 }

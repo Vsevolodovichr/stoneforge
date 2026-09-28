@@ -71,6 +71,7 @@ import { createQuarryAPI } from '../api/quarry-api.js';
 import { createSyncService } from '../sync/service.js';
 import { createAutoExportService } from '../sync/auto-export.js';
 import { createInboxService } from '../services/inbox.js';
+import { ProjectRegistry } from '../services/project-registry.js';
 import { loadConfig } from '../config/config.js';
 import type { QuarryAPI } from '../api/types.js';
 import type { SyncService } from '../sync/service.js';
@@ -87,7 +88,10 @@ import {
   createTaskRoutes as createSharedTaskRoutes,
 } from '@stoneforge/shared-routes';
 import { initializeBroadcaster } from './ws/broadcaster.js';
-import { handleOpen, handleMessage, handleClose, handleError, getClientCount, broadcastInboxEvent, type ClientData } from './ws/handler.js';
+import { handleOpen, handleMessage, handleClose, handleError, getClientCount, broadcastInboxEvent, broadcastToAll, type ClientData } from './ws/handler.js';
+import { createProjectRoutes } from './project-routes.js';
+import { createAuthMiddleware, validateWebSocketAuth } from '../auth/index.js';
+import { createRateLimitMiddleware } from '../auth/rate-limit.js';
 
 // ============================================================================
 // Local type replacing bun's ServerWebSocket (runtime-agnostic)
@@ -110,6 +114,10 @@ export interface QuarryServerOptions {
   dbPath?: string;
   webRoot?: string;
   corsOrigins?: string[];
+  /** Path to TLS certificate file (enables HTTPS) */
+  certPath?: string;
+  /** Path to TLS private key file (enables HTTPS) */
+  keyPath?: string;
 }
 
 export interface QuarryApp {
@@ -120,13 +128,14 @@ export interface QuarryApp {
   inboxService: InboxService;
   broadcaster: ReturnType<typeof initializeBroadcaster>;
   storageBackend: ReturnType<typeof createStorage>;
+  projectRegistry: ProjectRegistry;
 }
 
 // ============================================================================
 // createQuarryApp
 // ============================================================================
 
-export function createQuarryApp(options: QuarryServerOptions = {}): QuarryApp {
+export async function createQuarryApp(options: QuarryServerOptions = {}): Promise<QuarryApp> {
   const PORT = options.port ?? parseInt(process.env.PORT || '3456', 10);
   const HOST = options.host ?? (process.env.HOST || 'localhost');
 
@@ -194,6 +203,30 @@ export function createQuarryApp(options: QuarryServerOptions = {}): QuarryApp {
   });
 
   // ============================================================================
+  // Initialize Project Registry
+  // ============================================================================
+
+  const projectRegistry = new ProjectRegistry({
+    onActiveProjectChange: (project) => {
+      // Broadcast project switch to all connected WebSocket clients
+      if (project) {
+        broadcastToAll({
+          type: 'project',
+          projectId: project.id,
+          projectName: project.name,
+          projectPath: project.path,
+        });
+      } else {
+        broadcastToAll({
+          type: 'project',
+          projectId: null,
+        });
+      }
+    },
+  });
+  await projectRegistry.initialize();
+
+  // ============================================================================
   // Initialize Event Broadcaster
   // ============================================================================
 
@@ -209,7 +242,7 @@ export function createQuarryApp(options: QuarryServerOptions = {}): QuarryApp {
   const app = new Hono();
 
   // CORS middleware - allow web app to connect
-  const corsOrigins = options.corsOrigins ?? [
+  const corsOrigins = options.corsOrigins ?? config.controlCenter.corsOrigins ?? [
     `http://${HOST}:${PORT}`,
     `http://127.0.0.1:${PORT}`,
     `http://localhost:${PORT}`,
@@ -219,10 +252,25 @@ export function createQuarryApp(options: QuarryServerOptions = {}): QuarryApp {
     cors({
       origin: corsOrigins,
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowHeaders: ['Content-Type', 'Authorization'],
+      allowHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token'],
       credentials: true,
     })
   );
+
+  // Rate limiting middleware
+  const rateLimitMiddleware = createRateLimitMiddleware({
+    enabled: config.controlCenter.rateLimit.enabled,
+    maxRequests: config.controlCenter.rateLimit.maxRequests,
+    windowMs: config.controlCenter.rateLimit.windowMs,
+  });
+  app.use('*', rateLimitMiddleware);
+
+  // Authentication middleware
+  const authMiddleware = createAuthMiddleware({
+    enabled: config.controlCenter.auth.enabled,
+    token: config.controlCenter.auth.token,
+  });
+  app.use('/api/*', authMiddleware);
 
   // ============================================================================
   // Register Shared Collaborate Routes
@@ -246,6 +294,10 @@ export function createQuarryApp(options: QuarryServerOptions = {}): QuarryApp {
   app.route('/', createLibraryRoutes(collaborateServices));
   app.route('/', createDocumentRoutes(collaborateServices));
   app.route('/', createPlanRoutes(collaborateServices));
+
+  // Register project management routes
+  const projectRoutesServices = { projectRegistry };
+  app.route('/', createProjectRoutes(projectRoutesServices));
 
   // ============================================================================
   // Health Check Endpoint
@@ -3662,7 +3714,7 @@ app.delete('/api/uploads/:filename', async (c) => {
 });
 
   // Return the app and services
-  return { app, api, syncService, autoExportService, inboxService, broadcaster, storageBackend };
+  return { app, api, syncService, autoExportService, inboxService, broadcaster, storageBackend, projectRegistry };
 }
 
 // ============================================================================
@@ -3684,17 +3736,27 @@ const isBun = typeof globalThis.Bun !== 'undefined';
 
 function startBunServer(
   app: InstanceType<typeof Hono>,
-  options: { port: number; host: string },
+  options: { port: number; host: string; certPath?: string; keyPath?: string },
   wsHandlers: WsHandlers,
+  authConfig?: { enabled: boolean; token?: string },
 ) {
   const Bun = (globalThis as any).Bun;
+  const useTls = options.certPath && options.keyPath;
   const server = Bun.serve({
     port: options.port,
     hostname: options.host,
+    ...(useTls && {
+      cert: options.certPath,
+      key: options.keyPath,
+    }),
     fetch(request: Request, server: any) {
       // Handle WS upgrade
       const url = new URL(request.url);
       if (url.pathname === '/ws') {
+        // Validate WebSocket auth
+        if (authConfig && !validateWebSocketAuth(request.url, authConfig)) {
+          return new Response('Unauthorized', { status: 401 });
+        }
         const upgradeHeader = request.headers.get('Upgrade');
         if (upgradeHeader?.toLowerCase() === 'websocket') {
           const success = server.upgrade(request, { data: {} });
@@ -3712,94 +3774,116 @@ function startBunServer(
     },
   });
 
-  console.log(`[stoneforge] Bun server listening on http://${options.host}:${server.port}`);
+  const protocol = useTls ? 'https' : 'http';
+  console.log(`[stoneforge] Bun server listening on ${protocol}://${options.host}:${server.port}`);
   return server;
 }
 
-function startNodeServer(
+async function startNodeServer(
   app: InstanceType<typeof Hono>,
-  options: { port: number; host: string },
+  options: { port: number; host: string; certPath?: string; keyPath?: string },
   wsHandlers: WsHandlers,
+  authConfig?: { enabled: boolean; token?: string },
 ) {
-  import('ws').then(({ WebSocketServer }) => {
-    import('http').then(({ createServer }) => {
-      const httpServer = createServer(async (req, res) => {
-        const url = `http://${options.host}:${options.port}${req.url || '/'}`;
-        const headers = new Headers();
-        for (const [key, value] of Object.entries(req.headers)) {
-          if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
-        }
+  const { WebSocketServer } = await import('ws');
+  const { createServer: createHttpServer } = await import('http');
+  const { createServer: createHttpsServer } = await import('https');
+  const { readFileSync } = await import('node:fs');
 
-        const body = await new Promise<Buffer>((resolve) => {
-          const chunks: Buffer[] = [];
-          req.on('data', (chunk: Buffer) => chunks.push(chunk));
-          req.on('end', () => resolve(Buffer.concat(chunks)));
-        });
+  const useTls = options.certPath && options.keyPath;
 
-        const request = new Request(url, {
-          method: req.method,
-          headers,
-          body: ['GET', 'HEAD'].includes(req.method || '') ? undefined : body as unknown as BodyInit,
-        });
+  const serverOptions = useTls ? {
+    cert: readFileSync(options.certPath!),
+    key: readFileSync(options.keyPath!),
+  } : ({} as Record<string, unknown>);
 
-        try {
-          const response = await app.fetch(request);
-          res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
-          const arrayBuffer = await response.arrayBuffer();
-          res.end(Buffer.from(arrayBuffer));
-        } catch (err) {
-          console.error('[stoneforge] Request error:', err);
-          res.writeHead(500).end('Internal Server Error');
-        }
-      });
+  const requestHandler = async (req: any, res: any) => {
+    const protocol = useTls ? 'https' : 'http';
+    const url = `${protocol}://${options.host}:${options.port}${req.url || '/'}`;
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : String(value));
+    }
 
-      const wss = new WebSocketServer({ noServer: true });
-
-      wss.on('connection', (ws: any) => {
-        // Create an adapter matching the ServerWebSocket<ClientData> interface
-        const adapter: ServerWebSocket<ClientData> = {
-          data: {} as ClientData,
-          send(data: string | ArrayBuffer) {
-            ws.send(data);
-          },
-          close() {
-            ws.close();
-          },
-          get readyState() {
-            return ws.readyState;
-          },
-        };
-
-        wsHandlers.handleOpen(adapter);
-
-        ws.on('message', (data: Buffer | string) => {
-          wsHandlers.handleMessage(adapter, typeof data === 'string' ? data : data.toString());
-        });
-
-        ws.on('close', () => {
-          wsHandlers.handleClose(adapter);
-        });
-
-        ws.on('error', (error: Error) => {
-          wsHandlers.handleError(adapter, error);
-        });
-      });
-
-      httpServer.on('upgrade', (req: any, socket: any, head: any) => {
-        const pathname = new URL(req.url || '', `http://${options.host}`).pathname;
-        if (pathname === '/ws') {
-          wss.handleUpgrade(req, socket, head, (ws: any) => {
-            wss.emit('connection', ws, req);
-          });
-        } else {
-          socket.destroy();
-        }
-      });
-
-      httpServer.listen(options.port, options.host, () => {
-        console.log(`[stoneforge] Node server listening on http://${options.host}:${options.port}`);
-      });
+    const body = await new Promise<Buffer>((resolve) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => chunks.push(chunk));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
     });
+
+    const request = new Request(url, {
+      method: req.method,
+      headers,
+      body: ['GET', 'HEAD'].includes(req.method || '') ? undefined : body as unknown as BodyInit,
+    });
+
+    try {
+      const response = await app.fetch(request);
+      res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
+      const arrayBuffer = await response.arrayBuffer();
+      res.end(Buffer.from(arrayBuffer));
+    } catch (err) {
+      console.error('[stoneforge] Request error:', err);
+      res.writeHead(500).end('Internal Server Error');
+    }
+  };
+
+  const httpServer = useTls
+    ? createHttpsServer(serverOptions as any, requestHandler)
+    : createHttpServer(requestHandler);
+
+  const wss = new WebSocketServer({ noServer: true });
+
+  wss.on('connection', (ws: any, req: any) => {
+    // Validate WebSocket auth
+    if (authConfig && !validateWebSocketAuth(req.url || '', authConfig)) {
+      ws.close(1008, 'Unauthorized');
+      return;
+    }
+
+    // Create an adapter matching the ServerWebSocket<ClientData> interface
+    const adapter: ServerWebSocket<ClientData> = {
+      data: {} as ClientData,
+      send(data: string | ArrayBuffer) {
+        ws.send(data);
+      },
+      close() {
+        ws.close();
+      },
+      get readyState() {
+        return ws.readyState;
+      },
+    };
+
+    wsHandlers.handleOpen(adapter);
+
+    ws.on('message', (data: Buffer | string) => {
+      wsHandlers.handleMessage(adapter, typeof data === 'string' ? data : data.toString());
+    });
+
+    ws.on('close', () => {
+      wsHandlers.handleClose(adapter);
+    });
+
+    ws.on('error', (error: Error) => {
+      wsHandlers.handleError(adapter, error);
+    });
+  });
+
+  httpServer.on('upgrade', (req: any, socket: any, head: any) => {
+    const pathname = new URL(req.url || '', `http://${options.host}`).pathname;
+    if (pathname === '/ws') {
+      wss.handleUpgrade(req, socket, head, (ws: any) => {
+        wss.emit('connection', ws, req);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
+
+  httpServer.listen(options.port, options.host, () => {
+    const protocol = useTls ? 'https' : 'http';
+    console.log(`[stoneforge] Node server listening on ${protocol}://${options.host}:${options.port}`);
   });
 }
 
@@ -3807,8 +3891,8 @@ function startNodeServer(
 // startQuarryServer
 // ============================================================================
 
-export function startQuarryServer(options: QuarryServerOptions = {}): QuarryApp {
-  const quarryApp = createQuarryApp(options);
+export async function startQuarryServer(options: QuarryServerOptions = {}): Promise<QuarryApp> {
+  const quarryApp = await createQuarryApp(options);
 
   const port = options.port ?? parseInt(process.env.PORT || '3456', 10);
   const host = options.host ?? (process.env.HOST || 'localhost');
@@ -3825,12 +3909,18 @@ export function startQuarryServer(options: QuarryServerOptions = {}): QuarryApp 
     handleError,
   };
 
-  console.log(`[stoneforge] Starting server on http://${host}:${port}`);
+  const authConfig = {
+    enabled: quarryApp.projectRegistry ? true : false, // Will be set from config
+    token: undefined, // Will be set from config
+  };
+
+  const protocol = options.certPath && options.keyPath ? 'https' : 'http';
+  console.log(`[stoneforge] Starting server on ${protocol}://${host}:${port}`);
 
   if (isBun) {
-    startBunServer(quarryApp.app, { port, host }, wsHandlers);
+    startBunServer(quarryApp.app, { port, host, certPath: options.certPath, keyPath: options.keyPath }, wsHandlers, authConfig);
   } else {
-    startNodeServer(quarryApp.app, { port, host }, wsHandlers);
+    startNodeServer(quarryApp.app, { port, host, certPath: options.certPath, keyPath: options.keyPath }, wsHandlers, authConfig);
   }
 
   return quarryApp;

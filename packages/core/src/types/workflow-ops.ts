@@ -7,8 +7,7 @@
  * - Ephemeral filtering: Identify workflows/tasks to exclude from export
  */
 
-import type { ElementId, EntityId } from './element.js';
-import type { Task } from './task.js';
+import type { ElementId } from './element.js';
 import type { Workflow } from './workflow.js';
 import { isEligibleForGarbageCollection } from './workflow.js';
 import type { Dependency } from './dependency.js';
