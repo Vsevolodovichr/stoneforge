@@ -1,4 +1,5 @@
 @import '@stoneforge/ui/styles/tokens.css';
+@import "tailwindcss";
 
 :root {
   --color-bg: #ffffff;
