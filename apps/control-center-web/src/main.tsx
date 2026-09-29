@@ -6,6 +6,8 @@ import { router } from './router';
 import { ProjectProvider } from '@stoneforge/ui';
 import './index.css';
 
+document.documentElement.classList.add('dark');
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
