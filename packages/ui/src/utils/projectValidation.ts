@@ -22,6 +22,35 @@ export interface ProjectInfo {
   hasDatabase: boolean;
 }
 
+const LOCAL_CONNECTOR_ERROR = 'Local connector is unavailable. Start the local Quarry server.';
+
+/**
+ * Open the native directory picker provided by the local Quarry connector.
+ */
+export async function pickProjectDirectory(apiBaseUrl: string = ''): Promise<string | null> {
+  const baseUrl = apiBaseUrl.replace(/\/$/, '');
+  const response = await fetch(`${baseUrl}/api/projects/pick`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  });
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new Error(LOCAL_CONNECTOR_ERROR);
+  }
+
+  const data = await response.json() as {
+    path?: unknown;
+    error?: { message?: unknown };
+  };
+  if (!response.ok) {
+    const message = typeof data.error?.message === 'string' ? data.error.message : response.statusText;
+    throw new Error(message || LOCAL_CONNECTOR_ERROR);
+  }
+
+  return typeof data.path === 'string' && data.path.trim() ? data.path : null;
+}
+
 /**
  * Validate a project path
  */
@@ -32,7 +61,7 @@ export async function validateProjectPath(path: string): Promise<ValidationResul
       hasDirectory: false,
       hasStoneforge: false,
       hasConfig: false,
-      errors: ['Path is required'],
+      errors: ['Шлях обов’язковий'],
       warnings: [],
     };
   }
@@ -45,7 +74,7 @@ export async function validateProjectPath(path: string): Promise<ValidationResul
     });
 
     if (!response.ok) {
-      throw new Error('Validation failed');
+      throw new Error('Не вдалося перевірити шлях');
     }
 
     return await response.json();
@@ -56,7 +85,7 @@ export async function validateProjectPath(path: string): Promise<ValidationResul
       hasDirectory: false,
       hasStoneforge: false,
       hasConfig: false,
-      errors: ['Unable to validate path. Make sure the server is running.'],
+      errors: ['Не вдалося перевірити шлях. Переконайтеся, що сервер запущено.'],
       warnings: [],
     };
     return fallbackResult;

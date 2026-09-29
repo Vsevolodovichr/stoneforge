@@ -7,17 +7,36 @@
 import { Hono } from 'hono';
 import type { ProjectId, ProjectConfig, ProjectStatus, RegisterProjectInput, UpdateProjectInput } from '@stoneforge/core';
 import { ProjectRegistry } from '../services/project-registry.js';
+import { pickProjectDirectory } from './local-directory-picker.js';
 import { asProjectId, isStoneforgeProjectDir } from '@stoneforge/core';
 import { existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 
 export interface ProjectRoutesServices {
   projectRegistry: ProjectRegistry;
+  directoryPicker?: () => Promise<string | null>;
 }
 
 export function createProjectRoutes(services: ProjectRoutesServices) {
   const { projectRegistry } = services;
   const app = new Hono();
+
+  // POST /api/projects/pick - Open a native directory picker on the local connector
+  app.post('/api/projects/pick', async (c) => {
+    try {
+      const path = await (services.directoryPicker ?? pickProjectDirectory)();
+      return c.json({ path });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[stoneforge] Failed to open project directory picker:', error);
+      return c.json({
+        error: {
+          code: 'PICKER_UNAVAILABLE',
+          message: `Directory picker is unavailable: ${message}`,
+        },
+      }, 500);
+    }
+  });
 
   // POST /api/projects/validate - Validate a project path
   app.post('/api/projects/validate', async (c) => {

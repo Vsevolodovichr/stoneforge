@@ -92,6 +92,7 @@ import { handleOpen, handleMessage, handleClose, handleError, getClientCount, br
 import { createProjectRoutes } from './project-routes.js';
 import { createAuthMiddleware, validateWebSocketAuth } from '../auth/index.js';
 import { createRateLimitMiddleware } from '../auth/rate-limit.js';
+import { resolveQuarryAuthConfig, type QuarryAuthConfig } from './auth-config.js';
 
 // ============================================================================
 // Local type replacing bun's ServerWebSocket (runtime-agnostic)
@@ -129,6 +130,7 @@ export interface QuarryApp {
   broadcaster: ReturnType<typeof initializeBroadcaster>;
   storageBackend: ReturnType<typeof createStorage>;
   projectRegistry: ProjectRegistry;
+  authConfig: QuarryAuthConfig;
 }
 
 // ============================================================================
@@ -3714,7 +3716,17 @@ app.delete('/api/uploads/:filename', async (c) => {
 });
 
   // Return the app and services
-  return { app, api, syncService, autoExportService, inboxService, broadcaster, storageBackend, projectRegistry };
+  return {
+    app,
+    api,
+    syncService,
+    autoExportService,
+    inboxService,
+    broadcaster,
+    storageBackend,
+    projectRegistry,
+    authConfig: resolveQuarryAuthConfig(config.controlCenter.auth),
+  };
 }
 
 // ============================================================================
@@ -3909,10 +3921,7 @@ export async function startQuarryServer(options: QuarryServerOptions = {}): Prom
     handleError,
   };
 
-  const authConfig = {
-    enabled: quarryApp.projectRegistry ? true : false, // Will be set from config
-    token: undefined, // Will be set from config
-  };
+  const authConfig = quarryApp.authConfig;
 
   const protocol = options.certPath && options.keyPath ? 'https' : 'http';
   console.log(`[stoneforge] Starting server on ${protocol}://${host}:${port}`);

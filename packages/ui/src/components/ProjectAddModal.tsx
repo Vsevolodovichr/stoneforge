@@ -19,11 +19,44 @@ import {
   Info,
 } from 'lucide-react';
 import {
+  pickProjectDirectory,
   validateProjectPath,
   extractProjectName,
   normalizePath,
   type ValidationResult,
 } from '../utils/projectValidation';
+
+const PROJECT_ERROR_TRANSLATIONS: Record<string, string> = {
+  'Path is required': 'Шлях обов’язковий',
+  'path is required': 'Шлях обов’язковий',
+  'Directory does not exist': 'Каталог не існує',
+  '.stoneforge directory not found': 'Каталог .stoneforge не знайдено',
+  'config.yaml not found in .stoneforge': 'config.yaml у каталозі .stoneforge не знайдено',
+  'Validation failed': 'Не вдалося виконати перевірку',
+  'Failed to register project': 'Не вдалося зареєструвати проєкт',
+  'Project not found': 'Проєкт не знайдено',
+  'No active project': 'Немає активного проєкту',
+};
+
+function localizeProjectError(message: string): string {
+  if (message.includes('Local connector is unavailable')) {
+    return 'Локальний конектор недоступний. Запустіть локальний Quarry-сервер.';
+  }
+  if (message.includes('Directory picker is unavailable')) {
+    return 'Вибір каталогу недоступний на локальному сервері.';
+  }
+  if (message.includes('already registered')) return 'Проєкт уже зареєстровано';
+  if (message.includes('already exists')) return 'Проєкт уже існує';
+
+  const prefix = 'Failed to register project: ';
+  if (message.startsWith(prefix)) return PROJECT_ERROR_TRANSLATIONS['Failed to register project'];
+
+  const localizedMessage = PROJECT_ERROR_TRANSLATIONS[message];
+  if (localizedMessage) return localizedMessage;
+  if (/[А-Яа-яІіЇїЄєҐґ]/.test(message)) return message;
+
+  return 'Не вдалося виконати операцію. Спробуйте ще раз.';
+}
 
 export interface ProjectAddModalProps {
   isOpen: boolean;
@@ -49,6 +82,7 @@ export function ProjectAddModal({
   const [tags, setTags] = useState('');
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [isPicking, setIsPicking] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +94,7 @@ export function ProjectAddModal({
       setDescription('');
       setTags('');
       setValidation(null);
+      setIsPicking(false);
       setError(null);
     }
   }, [isOpen, initialPath]);
@@ -109,14 +144,30 @@ export function ProjectAddModal({
     setTags(newTags);
   }, []);
 
+  const handleBrowse = useCallback(async () => {
+    setIsPicking(true);
+    setError(null);
+
+    try {
+      const selectedPath = await pickProjectDirectory();
+      if (selectedPath) {
+        handlePathChange(selectedPath);
+      }
+    } catch (browseError) {
+      setError(browseError instanceof Error ? localizeProjectError(browseError.message) : 'Не вдалося вибрати каталог');
+    } finally {
+      setIsPicking(false);
+    }
+  }, [handlePathChange]);
+
   const handleSubmit = async () => {
     if (!path || !path.trim()) {
-      setError('Path is required');
+      setError('Шлях обов’язковий');
       return;
     }
 
     if (validation && !validation.isValid) {
-      setError('Please fix validation errors before adding');
+      setError('Виправте помилки перевірки перед додаванням');
       return;
     }
 
@@ -140,7 +191,7 @@ export function ProjectAddModal({
 
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add project');
+      setError(err instanceof Error ? localizeProjectError(err.message) : 'Не вдалося додати проєкт');
     } finally {
       setIsSubmitting(false);
     }
@@ -154,7 +205,7 @@ export function ProjectAddModal({
 
   if (!isOpen) return null;
 
-  const canSubmit = path.trim() && validation?.isValid && !isValidating && !isSubmitting;
+  const canSubmit = path.trim() && validation?.isValid && !isValidating && !isPicking && !isSubmitting;
 
   return (
     <div
@@ -175,13 +226,13 @@ export function ProjectAddModal({
             <div className="p-2 rounded-lg bg-[var(--color-primary-muted)]">
               <FolderOpen className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
-            <h2 id="project-add-title" className="text-lg font-semibold text-[var(--color-text)]">Add Project</h2>
+            <h2 id="project-add-title" className="text-lg font-semibold text-[var(--color-text)]">Додати проєкт</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"
-            aria-label="Close add project dialog"
+            aria-label="Закрити діалог додавання проєкту"
           >
             <X className="w-5 h-5" />
           </button>
@@ -192,31 +243,28 @@ export function ProjectAddModal({
           {/* Path Input */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--color-text)]">
-              Project Directory <span className="text-red-500">*</span>
+              Каталог проєкту <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={path}
                 onChange={(e) => handlePathChange(e.target.value)}
-                placeholder="/path/to/stoneforge/project"
+                placeholder="/шлях/до/stoneforge/проєкту"
                 className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
                 autoFocus
               />
               <button
                 type="button"
-                onClick={() => {
-                  // Note: Directory picker API is not widely supported
-                  // This is a placeholder for future implementation
-                  alert('Directory picker not available. Please enter the path manually.');
-                }}
+                onClick={handleBrowse}
+                disabled={isPicking || isSubmitting}
                 className="px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"
               >
-                Browse...
+                {isPicking ? 'Відкриття...' : 'Огляд...'}
               </button>
             </div>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              Path must contain a .stoneforge directory with config.yaml
+              Шлях має містити каталог .stoneforge із файлом config.yaml
             </p>
           </div>
 
@@ -224,7 +272,7 @@ export function ProjectAddModal({
           {isValidating && (
             <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Validating...
+              Перевірка...
             </div>
           )}
 
@@ -237,7 +285,7 @@ export function ProjectAddModal({
                   <AlertCircle className="w-4 h-4 text-red-500" />
                 )}
                 <span className="text-sm font-medium text-[var(--color-text)]">
-                  {validation.isValid ? 'Valid project' : 'Invalid project'}
+                  {validation.isValid ? 'Коректний проєкт' : 'Некоректний проєкт'}
                 </span>
               </div>
               <div className="space-y-1 text-xs">
@@ -247,7 +295,7 @@ export function ProjectAddModal({
                   ) : (
                     <X className="w-3 h-3 text-red-500" />
                   )}
-                  <span className="text-[var(--color-text-secondary)]">Directory exists</span>
+                  <span className="text-[var(--color-text-secondary)]">Каталог існує</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {validation.hasStoneforge ? (
@@ -255,7 +303,7 @@ export function ProjectAddModal({
                   ) : (
                     <X className="w-3 h-3 text-red-500" />
                   )}
-                  <span className="text-[var(--color-text-secondary)]">.stoneforge directory found</span>
+                  <span className="text-[var(--color-text-secondary)]">Каталог .stoneforge знайдено</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {validation.hasConfig ? (
@@ -263,13 +311,13 @@ export function ProjectAddModal({
                   ) : (
                     <X className="w-3 h-3 text-red-500" />
                   )}
-                  <span className="text-[var(--color-text-secondary)]">config.yaml found</span>
+                  <span className="text-[var(--color-text-secondary)]">config.yaml знайдено</span>
                 </div>
               </div>
               {validation.errors.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {validation.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-red-500">{err}</p>
+                    <p key={i} className="text-xs text-red-500">{localizeProjectError(err)}</p>
                   ))}
                 </div>
               )}
@@ -279,29 +327,29 @@ export function ProjectAddModal({
           {/* Name Input */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--color-text)]">
-              Project Name <span className="text-[var(--color-text-tertiary)]">(optional)</span>
+              Назва проєкту <span className="text-[var(--color-text-tertiary)]">(необов’язково)</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
-              placeholder={path ? extractProjectName(path) : 'My Project'}
+              placeholder={path ? extractProjectName(path) : 'Мій проєкт'}
               className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
             />
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              Defaults to directory name if not specified
+              Якщо не вказано, використовується назва каталогу
             </p>
           </div>
 
           {/* Description Input */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--color-text)]">
-              Description <span className="text-[var(--color-text-tertiary)]">(optional)</span>
+              Опис <span className="text-[var(--color-text-tertiary)]">(необов’язково)</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => handleDescriptionChange(e.target.value)}
-              placeholder="Project description..."
+              placeholder="Опис проєкту..."
               rows={3}
               className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 resize-none"
             />
@@ -310,17 +358,17 @@ export function ProjectAddModal({
           {/* Tags Input */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--color-text)]">
-              Tags <span className="text-[var(--color-text-tertiary)]">(optional)</span>
+              Теги <span className="text-[var(--color-text-tertiary)]">(необов’язково)</span>
             </label>
             <input
               type="text"
               value={tags}
               onChange={(e) => handleTagsChange(e.target.value)}
-              placeholder="tag1, tag2, tag3"
+              placeholder="тег1, тег2, тег3"
               className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
             />
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              Comma-separated tags
+              Розділяйте теги комами
             </p>
           </div>
 
@@ -336,8 +384,8 @@ export function ProjectAddModal({
           <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-sm">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>
-              The project directory must contain a .stoneforge folder with a config.yaml file.
-              Use <code className="px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40">sf init</code> to create a new project.
+              Каталог проєкту має містити папку .stoneforge із файлом config.yaml.
+              Використайте <code className="px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40">sf init</code>, щоб створити новий проєкт.
             </span>
           </div>
         </div>
@@ -349,7 +397,7 @@ export function ProjectAddModal({
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] rounded-lg"
           >
-            Cancel
+            Скасувати
           </button>
           <button
             onClick={handleSubmit}
@@ -359,12 +407,12 @@ export function ProjectAddModal({
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Adding...
+                Додавання...
               </>
             ) : (
               <>
                 <Plus className="w-4 h-4" />
-                Add Project
+                Додати проєкт
               </>
             )}
           </button>

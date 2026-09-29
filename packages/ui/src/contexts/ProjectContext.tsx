@@ -34,6 +34,34 @@ export interface ProjectContextValue {
 }
 
 const LOCAL_STORAGE_KEY = 'stoneforge-active-project-id';
+const LOCAL_CONNECTOR_ERROR = 'Local connector is unavailable. Start the local Quarry server.';
+
+function getJsonErrorMessage(data: unknown): string | undefined {
+  if (typeof data !== 'object' || data === null || !('error' in data)) return undefined;
+
+  const error = data.error;
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+
+  return undefined;
+}
+
+async function readJsonResponse(response: Response, fallbackMessage: string): Promise<unknown> {
+  if (response.status === 204) return undefined;
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new Error(LOCAL_CONNECTOR_ERROR);
+  }
+
+  const data = await response.json() as unknown;
+  if (!response.ok) {
+    throw new Error(getJsonErrorMessage(data) ?? `${fallbackMessage}: ${response.statusText}`);
+  }
+
+  return data;
+}
 
 const ProjectContext = createContext<ProjectContextValue | undefined>(undefined);
 
@@ -59,10 +87,7 @@ export function ProjectProvider({ children, apiBaseUrl = '' }: ProjectProviderPr
       setIsLoading(true);
       setError(null);
       const response = await fetch(`${apiBaseUrl}/api/projects`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch projects: ${response.statusText}`);
-      }
-      const data = await response.json();
+      const data = await readJsonResponse(response, 'Failed to fetch projects') as { projects?: ProjectConfig[] };
       setProjects(data.projects || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch projects');
@@ -97,9 +122,7 @@ export function ProjectProvider({ children, apiBaseUrl = '' }: ProjectProviderPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId }),
       });
-      if (!response.ok) {
-        throw new Error(`Failed to switch project: ${response.statusText}`);
-      }
+      await readJsonResponse(response, 'Failed to switch project');
       setActiveProjectId(projectId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to switch project');
@@ -115,11 +138,7 @@ export function ProjectProvider({ children, apiBaseUrl = '' }: ProjectProviderPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `Failed to register project: ${response.statusText}`);
-      }
-      const project = await response.json();
+      const project = await readJsonResponse(response, 'Failed to register project');
       await fetchProjects();
       return project as ProjectConfig;
     } catch (err) {
@@ -134,9 +153,7 @@ export function ProjectProvider({ children, apiBaseUrl = '' }: ProjectProviderPr
       const response = await fetch(`${apiBaseUrl}/api/projects/${projectId}`, {
         method: 'DELETE',
       });
-      if (!response.ok) {
-        throw new Error(`Failed to remove project: ${response.statusText}`);
-      }
+      await readJsonResponse(response, 'Failed to remove project');
       if (activeProjectId === projectId) {
         setActiveProjectId(null);
       }
