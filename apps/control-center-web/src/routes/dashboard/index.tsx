@@ -5,7 +5,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ProjectAddModal, useProject } from '@stoneforge/ui';
+import { ProjectAddModal } from '@stoneforge/ui/components/ProjectAddModal';
+import { useProject } from '@stoneforge/ui/contexts/ProjectContext';
 import {
   FolderOpen,
   Plus,
@@ -32,7 +33,7 @@ interface ProjectStatus {
 
 async function fetchProjectStatus(projectId: string): Promise<ProjectStatus> {
   const response = await fetch(`/api/projects/${projectId}/status`);
-  if (!response.ok) throw new Error('Failed to fetch project status');
+  if (!response.ok) throw new Error('Не вдалося отримати стан проєкту');
   return response.json();
 }
 
@@ -91,8 +92,8 @@ export function DashboardPage() {
                 <Server className="w-6 h-6 text-[var(--color-primary)]" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-[var(--color-text)]">Control Center</h1>
-                <p className="text-sm text-[var(--color-text-secondary)]">Manage your Stoneforge projects</p>
+                <h1 className="text-xl font-semibold text-[var(--color-text)]">Центр керування</h1>
+                <p className="text-sm text-[var(--color-text-secondary)]">Керуйте проєктами Stoneforge</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -100,16 +101,16 @@ export function DashboardPage() {
                 type="button"
                 onClick={() => setIsAddProjectOpen(true)}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]"
-                aria-label="Add project"
+                aria-label="Додати проєкт"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Project</span>
+                <span className="hidden sm:inline">Додати проєкт</span>
               </button>
               <button
                 onClick={refreshProjects}
                 disabled={isLoading}
                 className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"
-                title="Refresh projects"
+                title="Оновити проєкти"
               >
                 <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
@@ -127,7 +128,7 @@ export function DashboardPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)]" />
               <input
                 type="text"
-                placeholder="Search projects..."
+                placeholder="Пошук проєктів..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
@@ -136,12 +137,12 @@ export function DashboardPage() {
             <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)]">
               <span className="flex items-center gap-1.5">
                 <FolderOpen className="w-4 h-4" />
-                {projects.length} projects
+                Проєктів: {projects.length}
               </span>
               {activeProject && (
                 <span className="flex items-center gap-1.5">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  Active: {activeProject.name}
+                  Активний: {activeProject.name}
                 </span>
               )}
             </div>
@@ -156,9 +157,9 @@ export function DashboardPage() {
         ) : filteredProjects.length === 0 ? (
           <div className="text-center py-12">
             <FolderOpen className="w-16 h-16 mx-auto mb-4 text-[var(--color-text-tertiary)] opacity-50" />
-            <h3 className="text-lg font-medium text-[var(--color-text)] mb-2">No projects found</h3>
+            <h3 className="text-lg font-medium text-[var(--color-text)] mb-2">Проєкти не знайдено</h3>
             <p className="text-[var(--color-text-secondary)] mb-4">
-              {searchQuery ? 'Try adjusting your search' : 'Add your first project to get started'}
+              {searchQuery ? 'Спробуйте змінити запит' : 'Додайте перший проєкт, щоб почати'}
             </p>
             {!searchQuery && (
               <button
@@ -167,7 +168,7 @@ export function DashboardPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]"
               >
                 <Plus className="w-4 h-4" />
-                Add Project
+                Додати проєкт
               </button>
             )}
           </div>
@@ -201,7 +202,7 @@ export function DashboardPage() {
                     </div>
                     {isActive && (
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-[var(--color-primary)] text-white">
-                        Active
+                        Активний
                       </span>
                     )}
                   </div>
@@ -211,7 +212,7 @@ export function DashboardPage() {
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="flex items-center gap-2 text-sm">
                         <Activity className="w-4 h-4 text-[var(--color-text-tertiary)]" />
-                        <span className="text-[var(--color-text-secondary)]">{status.agentCount} agents</span>
+                        <span className="text-[var(--color-text-secondary)]">Агентів: {status.agentCount}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         {status.dispatchDaemonRunning ? (
@@ -220,7 +221,7 @@ export function DashboardPage() {
                           <ServerOff className="w-4 h-4 text-[var(--color-text-tertiary)]" />
                         )}
                         <span className="text-[var(--color-text-secondary)]">
-                          {status.activeSessions} active
+                          Активних сесій: {status.activeSessions}
                         </span>
                       </div>
                     </div>
@@ -229,7 +230,7 @@ export function DashboardPage() {
                   {/* Last Accessed */}
                   <div className="flex items-center gap-2 text-xs text-[var(--color-text-tertiary)] mb-4">
                     <Clock className="w-3 h-3" />
-                    Last accessed: {new Date(project.lastAccessedAt).toLocaleString()}
+                    Останній доступ: {new Date(project.lastAccessedAt).toLocaleString('uk-UA')}
                   </div>
 
                   {/* Actions */}
@@ -239,20 +240,20 @@ export function DashboardPage() {
                         onClick={() => switchProject(project.id)}
                         className="flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]"
                       >
-                        Switch to
+                        Перемкнутися
                       </button>
                     )}
                     <button
                       onClick={() => handleOpenInQuarry(project.id)}
                       className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"
-                      title="Open in Quarry"
+                      title="Відкрити в Quarry"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleOpenInSmithy(project.id)}
                       className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"
-                      title="Open in Smithy"
+                      title="Відкрити в Smithy"
                     >
                       <Settings className="w-4 h-4" />
                     </button>

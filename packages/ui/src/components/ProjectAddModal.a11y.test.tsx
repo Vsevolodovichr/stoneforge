@@ -16,6 +16,7 @@ describe('ProjectAddModal accessibility', () => {
     expect(markup).toContain('role="dialog"');
     expect(markup).toContain('aria-modal="true"');
     expect(markup).toContain('aria-labelledby="project-add-title"');
-    expect(markup).toContain('aria-label="Close add project dialog"');
+    expect(markup).toContain('aria-label="Закрити діалог додавання проєкту"');
+    expect(markup).toContain('Додати проєкт');
   });
 });

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { router } from './router';
-import { ProjectProvider } from '@stoneforge/ui';
+import { ProjectProvider } from '@stoneforge/ui/contexts/ProjectContext';
 import './index.css';
 
 document.documentElement.classList.add('dark');

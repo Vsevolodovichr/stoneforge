@@ -18,6 +18,12 @@
       "import": "./dist/components/index.js",
       "default": "./dist/components/index.js"
     },
+    "./components/ProjectAddModal": {
+      "types": "./src/components/ProjectAddModal.tsx",
+      "bun": "./src/components/ProjectAddModal.tsx",
+      "import": "./dist/components/ProjectAddModal.js",
+      "default": "./dist/components/ProjectAddModal.js"
+    },
     "./layout": {
       "types": "./src/layout/index.ts",
       "bun": "./src/layout/index.ts",
@@ -53,6 +59,12 @@
       "bun": "./src/contexts/index.ts",
       "import": "./dist/contexts/index.js",
       "default": "./dist/contexts/index.js"
+    },
+    "./contexts/ProjectContext": {
+      "types": "./src/contexts/ProjectContext.tsx",
+      "bun": "./src/contexts/ProjectContext.tsx",
+      "import": "./dist/contexts/ProjectContext.js",
+      "default": "./dist/contexts/ProjectContext.js"
     },
     "./plans": {
       "types": "./src/plans/index.ts",
