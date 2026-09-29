@@ -36,6 +36,11 @@ export default defineConfig({
   server: {
     port: 5174, // Different port from main web app (5173)
     proxy: {
+      // Shared project registry is served by the local Quarry server.
+      '/api/projects': {
+        target: 'http://localhost:3456',
+        changeOrigin: true,
+      },
       // All API routes go to orchestrator server (includes shared collaborate routes)
       '/api': {
         target: `http://localhost:${apiPort}`,
