@@ -74,11 +74,11 @@ export function DashboardPage() {
   );
 
   const handleOpenInQuarry = (projectId: string) => {
-    window.open(`http://localhost:5173/?project=${projectId}`, '_blank');
+    window.open(`http://localhost:5173/dashboard/overview?project=${encodeURIComponent(projectId)}`, '_blank');
   };
 
   const handleOpenInSmithy = (projectId: string) => {
-    window.open(`http://localhost:5174/?project=${projectId}`, '_blank');
+    window.open(`http://localhost:5174/settings?project=${encodeURIComponent(projectId)}`, '_blank');
   };
 
   return (

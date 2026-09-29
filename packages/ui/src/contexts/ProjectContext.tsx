@@ -36,6 +36,11 @@ export interface ProjectContextValue {
 const LOCAL_STORAGE_KEY = 'stoneforge-active-project-id';
 const LOCAL_CONNECTOR_ERROR = 'Local connector is unavailable. Start the local Quarry server.';
 
+export function getProjectIdFromSearch(search: string, storedProjectId: string | null): string | null {
+  const projectId = new URLSearchParams(search).get('project');
+  return projectId?.trim() || storedProjectId;
+}
+
 function getJsonErrorMessage(data: unknown): string | undefined {
   if (typeof data !== 'object' || data === null || !('error' in data)) return undefined;
 
@@ -75,7 +80,7 @@ export function ProjectProvider({ children, apiBaseUrl = '' }: ProjectProviderPr
   const [projects, setProjects] = useState<ProjectConfig[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(LOCAL_STORAGE_KEY);
+      return getProjectIdFromSearch(window.location.search, localStorage.getItem(LOCAL_STORAGE_KEY));
     }
     return null;
   });
