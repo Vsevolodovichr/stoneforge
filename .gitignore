@@ -63,3 +63,11 @@ tools/seo/service-account.json
 .test-history/
 .local-backup/
 .wrangler/
+/apps/quarry-server
+/apps/smithy-server
+/apps/smithy-server/.stoneforge
+apps/quarry-server/.stoneforge/stoneforge.db-shm
+apps/smithy-server/.stoneforge/stoneforge.db
+apps/smithy-server/.stoneforge/stoneforge.db-shm
+apps/smithy-server/.stoneforge/stoneforge.db-wal
+/.superpowers/sdd
